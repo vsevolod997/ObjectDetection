@@ -13,7 +13,6 @@ import Vision
 
 class ViewController: UIViewController {
     
-    
     //@IBOutlet weak var camView: UIImageView!
     @IBOutlet weak var camView: UIView!
     @IBOutlet weak var outputString: UILabel!
@@ -26,7 +25,7 @@ class ViewController: UIViewController {
     var i: Int = 0
     
     
-    //MARK: - Init sessionQueu
+    //MARK: - Init sessionQueue
     let sessionQueue = DispatchQueue(label: "CamWorck", qos: .userInitiated)
     
     override func viewDidLoad() {
@@ -36,7 +35,7 @@ class ViewController: UIViewController {
     }
     
     //MARK: - получение изображения с камеры
-    fileprivate func presentCamera(){
+    fileprivate func presentCamera() {
         sessionQueue.async {
             let backCam = AVCaptureDevice.default(for: AVMediaType.video)
             
@@ -47,14 +46,13 @@ class ViewController: UIViewController {
                 guard let cam = backCam else { return }
                 input = try AVCaptureDeviceInput(device: cam)
             } catch let errorLocal as NSError {
-                
                 error = errorLocal
                 input = nil
                 self.alertPresent(errorLocal)
             }
             guard let inputVarp = input else { return }
             
-            if error == nil && self.session.canAddInput(inputVarp){
+            if error == nil && self.session.canAddInput(inputVarp) {
                 self.session.addInput(inputVarp)
                 self.stilImageOutput = AVCaptureVideoDataOutput()
                 guard let dataOutput = self.stilImageOutput else { return }
@@ -63,7 +61,7 @@ class ViewController: UIViewController {
                     dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "video"))
                     self.previewLayer = AVCaptureVideoPreviewLayer(session: self.session)
                     self.previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
-                    if let preview = self.previewLayer{
+                    if let preview = self.previewLayer {
                         DispatchQueue.main.async {
                             preview.frame = self.camView.bounds
                             self.camView.layer.addSublayer(preview)
@@ -83,6 +81,7 @@ class ViewController: UIViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    
     @IBAction func buttonPress(_ sender: Any) {
         isStart = !isStart
         if isStart {
@@ -97,29 +96,29 @@ class ViewController: UIViewController {
         
     }
 }
-extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate{
+
+
+//MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     
     //MARK: - обработка кадров из камеры
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
-        if isStart{
+        if isStart {
             i += 1
-            
-            if i % 15 == 0{
+            if i % 15 == 0 {
                 guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
                 guard let model = try? VNCoreMLModel(for: MobileNet().model) else { return }
                 
                 let reqest = VNCoreMLRequest(model: model) { (reqest, err) in
-                    if let error = err{
+                    if let error = err {
                         self.alertPresent(error)
                     } else {
                         guard let result = reqest.results as? [VNClassificationObservation] else { return }
-                        
-                        guard let firstObjet =  result.first else { return }
-                        
+                        guard let firstObjcet = result.first else { return }
                         DispatchQueue.main.async {
-                            if firstObjet.confidence < 0.7{
-                                self.outputString.text = firstObjet.identifier
+                            if firstObjcet.confidence < 0.5 {
+                                self.outputString.text = firstObjcet.identifier
                             } else {
                                 self.outputString.text = "object not detected"
                             }
